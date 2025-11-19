@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zombie Crowd Shooter: Titan Evolution</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- UI Layer -->
+  <div class="ui-layer">
+
+    <!-- Evolution Banner -->
+    <div id="evo-banner"
+      class="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center transition-opacity duration-300 opacity-0 z-50 pointer-events-none">
+      <div
+        class="text-yellow-300 font-black text-5xl drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] italic border-4 border-white bg-orange-500/80 px-8 py-4 rounded-xl transform -skew-x-12">
+        TITAN MERGE!
+      </div>
+      <div class="text-white font-bold text-xl mt-2 text-shadow">SQUAD POWER CONSOLIDATED</div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud"
+      class="hidden w-full p-4 flex justify-between items-start bg-gradient-to-b from-black/70 to-transparent h-32 pointer-events-none">
+      <!-- Left: Coins -->
+      <div class="flex flex-col gap-2">
+        <div
+          class="bg-yellow-500/20 backdrop-blur text-yellow-400 px-4 py-2 rounded-xl border-l-4 border-yellow-500 font-black text-2xl flex items-center gap-2">
+          <span>💎</span> <span id="coins-display">0</span>
+        </div>
+      </div>
+      <!-- Center: Squad Power -->
+      <div class="absolute left-1/2 transform -translate-x-1/2 top-4">
+        <div class="bg-blue-600/80 px-6 py-2 rounded-full border-2 border-white shadow-lg flex items-center gap-2">
+          <span class="text-2xl">⚔️</span>
+          <span id="power-display" class="text-3xl font-black text-white">1</span>
+        </div>
+      </div>
+      <!-- Right: Distance -->
+      <div class="text-white font-black drop-shadow-md text-4xl italic">
+        <span id="score-display">0</span> <span class="text-lg text-gray-300">M</span>
+      </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 pointer-events-auto z-50 backdrop-blur-sm">
+
+      <div class="text-center mb-10">
+        <h1
+          class="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-400 to-purple-600 italic transform -skew-x-6 drop-shadow-[0_0_15px_rgba(0,100,255,0.5)]">
+          CROWD<br>EVOLUTION
+        </h1>
+        <p class="text-gray-400 mt-2 tracking-widest font-bold">MERGE & CONQUER</p>
+      </div>
+
+      <!-- Upgrades -->
+      <div class="grid grid-cols-2 gap-4 mb-10 w-full max-w-md px-4">
+        <button id="btn-upgrade-dmg"
+          class="bg-gray-800 border-2 border-gray-600 rounded-2xl p-4 flex flex-col items-center hover:border-yellow-400 hover:bg-gray-700 transition group active:scale-95">
+          <div class="text-3xl mb-2 group-hover:scale-110 transition">🔫</div>
+          <div class="text-gray-300 font-bold">Damage Lv.<span id="lvl-dmg">1</span></div>
+          <div class="text-yellow-400 font-black mt-1"><span id="price-dmg">100</span> 💎</div>
+        </button>
+
+        <button id="btn-upgrade-count"
+          class="bg-gray-800 border-2 border-gray-600 rounded-2xl p-4 flex flex-col items-center hover:border-blue-400 hover:bg-gray-700 transition group active:scale-95">
+          <div class="text-3xl mb-2 group-hover:scale-110 transition">👨‍👩‍👦</div>
+          <div class="text-gray-300 font-bold">Start Units Lv.<span id="lvl-count">1</span></div>
+          <div class="text-yellow-400 font-black mt-1"><span id="price-count">200</span> 💎</div>
+        </button>
+      </div>
+
+      <button id="btn-start"
+        class="btn-pulse bg-gradient-to-r from-blue-600 to-purple-600 text-white text-3xl font-black px-16 py-6 rounded-full shadow-[0_0_30px_rgba(76,29,149,0.5)] hover:scale-105 transition border-4 border-white/20">
+        START RUN
+      </button>
+
+      <div class="mt-8 text-center w-64 bg-white/5 rounded-lg p-4">
+        <h3 class="text-gray-500 text-xs uppercase tracking-widest mb-2">Leaderboard</h3>
+        <div id="leaderboard-list" class="text-gray-300 text-sm space-y-1 min-h-[60px]">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over"
+      class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/95 pointer-events-auto z-50">
+      <h2 class="text-6xl font-black text-red-600 mb-2 italic uppercase tracking-tighter">Wasted</h2>
+      <div class="text-gray-400 mb-8">Your squad was eliminated</div>
+
+      <div class="bg-gray-800 rounded-2xl p-8 w-80 mb-8 border border-gray-700 text-center">
+        <div class="text-gray-400 text-sm uppercase mb-1">Distance Run</div>
+        <div class="text-5xl font-black text-white mb-6"><span id="final-score">0</span>m</div>
+
+        <div class="text-gray-400 text-sm uppercase mb-1">Loot Secured</div>
+        <div class="text-4xl font-black text-yellow-400">+<span id="final-coins">0</span></div>
+      </div>
+
+      <button id="btn-restart"
+        class="bg-white text-black font-black px-12 py-4 rounded-full hover:bg-gray-200 transition text-xl">
+        TRY AGAIN
+      </button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
