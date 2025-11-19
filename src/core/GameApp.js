@@ -6,6 +6,8 @@ import { SquadSystem } from '../systems/SquadSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { UIManager } from '../ui/UIManager.js';
 import { FirebaseManager } from './FirebaseManager.js';
+import { LevelManager } from './LevelManager.js';
+import { AudioManager } from './AudioManager.js';
 
 export class GameApp {
     constructor() {
@@ -35,6 +37,13 @@ export class GameApp {
         this.combatSystem = new CombatSystem(this.scene);
         this.uiManager = new UIManager();
         this.firebaseManager = new FirebaseManager();
+        this.levelManager = new LevelManager(this.firebaseManager);
+        this.audioManager = new AudioManager();
+
+        // Initial Render Setup
+        this.squadSystem.centerPosition.set(0, 0, 0);
+        this.camera.position.set(0, 20, 22);
+        this.camera.lookAt(0, 0, -10);
 
         this.loop = new Loop(this.update.bind(this));
 
@@ -84,21 +93,48 @@ export class GameApp {
                 this.uiManager.updateShop(this.state);
             }
         };
+
+        this.uiManager.btnPause.onclick = () => {
+            if (this.state.isPlaying && !this.state.isPaused) {
+                this.loop.stop();
+                this.state.isPaused = true;
+                this.uiManager.showPauseMenu();
+            }
+        };
+
+        // Add resume handler
+        if (this.uiManager.btnResume) {
+            this.uiManager.btnResume.onclick = () => {
+                if (this.state.isPaused) {
+                    this.state.isPaused = false;
+                    this.loop.start();
+                    this.uiManager.showGame();
+                }
+            };
+        }
+
+        // Add quit handler
+        if (this.uiManager.btnQuit) {
+            this.uiManager.btnQuit.onclick = () => {
+                this.resetGame();
+            };
+        }
     }
 
     startGame() {
+        this.audioManager.init(); // Init audio on user gesture
         this.state.isPlaying = true;
         this.uiManager.showGame();
+
+        // Reset Level
+        this.levelManager.reset();
+        const startZ = -this.levelManager.currentDistance;
 
         // Reset World
         this.squadSystem.units.forEach(u => u.dispose());
         this.squadSystem.units = [];
-        if (this.squadSystem.titan) {
-            this.squadSystem.titan.dispose();
-            this.squadSystem.titan = null;
-        }
-        this.squadSystem.centerPosition.set(0, 0, 0);
-        this.roadSystem.reset();
+        this.squadSystem.centerPosition.set(0, 0, startZ);
+        this.roadSystem.reset(startZ);
 
         // Add initial units based on upgrade
         for (let i = 0; i < this.state.upgradeCount; i++) {
@@ -117,6 +153,7 @@ export class GameApp {
     start() {
         // this.loop.start(); // Don't auto start, wait for UI
         this.uiManager.showMainMenu();
+        this.renderer.render(this.scene, this.camera); // Render initial frame
     }
 
     update(dt) {
@@ -124,6 +161,16 @@ export class GameApp {
         const squadPos = this.squadSystem.getPosition();
 
         // Update Systems
+        this.levelManager.update(dt, this.squadSystem.moveSpeed);
+
+        // Sync squad Z with level distance
+        this.levelManager.currentDistance = Math.abs(squadPos.z);
+        const leveledUp = this.levelManager.checkLevelUp();
+        if (leveledUp) {
+            this.uiManager.showLevelUp(this.levelManager.currentLevel);
+            this.audioManager.playMerge(); // Play level-up sound
+        }
+
         this.roadSystem.update(dt, squadPos.z);
 
         this.squadSystem.update(dt, this.roadSystem.gates, (type, pos, val) => {
@@ -132,6 +179,7 @@ export class GameApp {
                 const color = val > 0 ? '#4ade80' : '#f87171';
                 const text = val > 0 ? `+${val}` : `${val}`;
                 this.uiManager.showFloatingText(text, screenPos.x, screenPos.y, color);
+                this.audioManager.playGate();
             }
         });
 
@@ -142,9 +190,13 @@ export class GameApp {
                 this.state.money += val;
                 this.firebaseManager.updateMoney(val);
                 this.uiManager.updateCoins(this.state.money);
+                this.audioManager.playHit();
             } else if (type === 'upgrade') {
                 const screenPos = this.toScreenPosition(pos);
                 this.uiManager.showFloatingText("UPGRADE!", screenPos.x, screenPos.y, '#F59E0B');
+                this.audioManager.playMerge();
+            } else if (type === 'shoot') {
+                // Optional: too noisy if every shot plays
             }
         });
 
@@ -156,13 +208,12 @@ export class GameApp {
 
         // UI Update
         this.uiManager.updateSquadCount(this.squadSystem.getUnitCount());
-        this.uiManager.updateDistance(Math.abs(Math.floor(squadPos.z)));
+        this.uiManager.updateDistance(Math.floor(this.levelManager.currentDistance));
 
         if (this.squadSystem.getUnitCount() <= 0) {
             this.state.isPlaying = false;
-            const score = Math.abs(Math.floor(squadPos.z));
-            this.uiManager.showGameOver(score, this.state.money); // Pass money or run money?
-            // Usually run money is separate, but let's just show total for now or track run money
+            const score = Math.floor(this.levelManager.currentDistance);
+            this.uiManager.showGameOver(score, this.state.money);
             this.firebaseManager.updateScore(score);
             this.loop.stop();
         }

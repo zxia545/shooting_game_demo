@@ -46,20 +46,24 @@ export class CombatSystem {
             this.fireTimer = 0;
 
             // Squad shoots
-            if (squadSystem.titan) {
-                // Titan shoots big bullet
-                const pos = squadSystem.titan.mesh.position;
-                this.spawnBullet(pos.x, pos.y + 1, pos.z - 1, 1.0, 50);
-            } else {
-                // Units shoot
-                squadSystem.units.forEach(u => {
-                    if (Math.random() > 0.3) { // Stagger fire
-                        const pos = u.mesh.position;
-                        const dmg = u.config.dmg; // Assuming config has dmg
-                        this.spawnBullet(pos.x, pos.y + 0.8, pos.z - 0.5, 0.2, dmg);
-                    }
-                });
-            }
+            // Titans and Tanks shoot bigger bullets
+            const bigUnits = squadSystem.units.filter(u => u.tier >= 3);
+            bigUnits.forEach(u => {
+                const pos = u.mesh.position;
+                const dmg = u.tier === 4 ? 200 : 50; // Tank does more damage
+                const size = u.tier === 4 ? 1.5 : 1.0;
+                this.spawnBullet(pos.x, pos.y + 1, pos.z - 1, size, dmg);
+            });
+
+            // Small units shoot smaller bullets
+            const smallUnits = squadSystem.units.filter(u => u.tier < 3);
+            smallUnits.forEach(u => {
+                if (Math.random() > 0.3) { // Stagger fire
+                    const pos = u.mesh.position;
+                    const dmg = u.config.dmg;
+                    this.spawnBullet(pos.x, pos.y + 0.8, pos.z - 0.5, 0.2, dmg);
+                }
+            });
         }
 
         // 2. Update Bullets
@@ -132,7 +136,13 @@ export class CombatSystem {
         const squadPos = squadSystem.getPosition();
         for (let i = roadSystem.enemies.length - 1; i >= 0; i--) {
             const e = roadSystem.enemies[i];
-            if (Math.abs(e.position.z - squadPos.z) < 1.0 &&
+
+            // Ignore enemies behind the squad (z > squadPos.z)
+            // Squad moves -Z. Enemies at -100 are ahead. Enemies at 0 are behind.
+            // So if e.z > squadPos.z + 2, it's behind.
+            if (e.position.z > squadPos.z + 2) continue;
+
+            if (Math.abs(e.position.z - squadPos.z) < 1.5 &&
                 Math.abs(e.position.x - squadPos.x) < 2.0) {
 
                 // Collision!

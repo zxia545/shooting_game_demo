@@ -33,6 +33,11 @@ export class RoadSystem {
         for (let i = 0; i < this.visibleSegments; i++) {
             this.spawnSegment();
         }
+
+        // Initial Spawns to ensure action starts quickly
+        this.spawnGameElements(-60);
+        this.spawnGameElements(-90);
+        this.spawnGameElements(-120);
     }
 
     spawnSegment() {
@@ -81,9 +86,18 @@ export class RoadSystem {
     spawnGameElements(z) {
         const seed = Math.random();
 
+        // If z is very close to start (e.g. > -50), don't spawn enemies yet to give player time
+        if (z > -50) return;
+
+        // Determine enemy tier based on distance
+        const dist = Math.abs(z);
+        let enemyTier = 0;
+        if (dist > 2000) enemyTier = 2; // Hard enemies after 2000m
+        else if (dist > 1000) enemyTier = 1; // Medium enemies after 1000m
+
         if (seed < 0.4) {
-            // Gates
-            const v1 = Math.floor(Math.random() * 20) + 5;
+            // Gates - cap positive values at 100
+            const v1 = Math.min(Math.floor(Math.random() * 20) + 5, 100);
             const v2 = -Math.floor(Math.random() * 10) - 5;
             const flip = Math.random() > 0.5;
 
@@ -95,10 +109,11 @@ export class RoadSystem {
             const box = new WeaponBox(this.scene, z);
             this.boxes.push(box);
         } else {
-            // Enemies
-            const count = 3;
-            for (let i = 0; i < count; i++) {
-                const enemy = new Enemy(this.scene, z + Math.random() * 10 - 5);
+            // Enemies with variety
+            const count = 3 + Math.floor(dist / 500); // More enemies as distance increases
+            for (let i = 0; i < Math.min(count, 8); i++) {
+                const tier = Math.random() > 0.7 ? Math.min(enemyTier + 1, 2) : enemyTier;
+                const enemy = new Enemy(this.scene, z + Math.random() * 10 - 5, tier);
                 this.enemies.push(enemy);
             }
         }
@@ -154,7 +169,7 @@ export class RoadSystem {
         });
     }
 
-    reset() {
+    reset(startZ = 0) {
         // Clear all
         this.segments.forEach(s => this.scene.remove(s));
         this.segments = [];
@@ -168,7 +183,7 @@ export class RoadSystem {
         this.boxes.forEach(b => b.dispose());
         this.boxes = [];
 
-        this.lastZ = 0;
+        this.lastZ = startZ;
         this.init();
     }
 }

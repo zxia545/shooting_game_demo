@@ -6,7 +6,6 @@ export class SquadSystem {
         this.scene = scene;
         this.input = input;
         this.units = [];
-        this.titan = null;
         this.centerPosition = new THREE.Vector3(0, 0, 0);
         this.moveSpeed = 14;
         this.swerveSpeed = 20;
@@ -21,12 +20,16 @@ export class SquadSystem {
     }
 
     getUnitCount() {
-        // Weighted count: Titan = 50
-        return this.units.reduce((acc, u) => acc + (u.tier === 3 ? 50 : 1), 0);
+        // Count weighted by tier: Basic=1, Elite=1, Commander=1, Titan=50, Tank=500
+        return this.units.reduce((acc, u) => {
+            if (u.tier === 3) return acc + 50;  // Titan = 50
+            if (u.tier === 4) return acc + 500; // Tank = 500
+            return acc + 1;
+        }, 0);
     }
 
     addUnit(tier = 0) {
-        if (this.titan) return; // No adding units if Titan is active
+        // if (this.titan) return; // Allow adding units even with Titan
 
         const unit = new Unit(this.scene, this.centerPosition, tier, true);
         this.units.push(unit);
@@ -47,50 +50,67 @@ export class SquadSystem {
     }
 
     checkMerge() {
-        const mergeThreshold = 50;
-        const basics = this.units.filter(u => u.tier === 0);
+        // Continuous merging system:
+        // Every 50 tier-0 (basic) units → 1 tier-3 (Titan) unit
+        // Every 10 tier-3 (Titan) units → 1 tier-4 (Tank) unit
 
-        if (basics.length >= mergeThreshold) {
-            // Remove 50 basics
-            let removed = 0;
-            const toRemove = [];
+        let didMerge = false;
 
-            for (const u of basics) {
-                if (removed < mergeThreshold) {
-                    toRemove.push(u);
-                    removed++;
-                } else {
-                    break;
-                }
-            }
-
+        // Check for Titan → Tank merge (10 Titans = 1 Tank)
+        const titans = this.units.filter(u => u.tier === 3);
+        if (titans.length >= 10) {
+            const toRemove = titans.slice(0, 10);
             toRemove.forEach(u => {
                 u.dispose();
                 const idx = this.units.indexOf(u);
                 if (idx > -1) this.units.splice(idx, 1);
             });
 
-            // Add Titan (Tier 3)
-            this.titan = new Unit(this.scene, this.centerPosition, 3, true);
-            console.log("TITAN MERGE!");
+            // Create new Tank
+            const tank = new Unit(this.scene, this.centerPosition, 4, true);
+            this.units.push(tank);
+            console.log("TANK MERGE! (10 Titans → 1 Tank)");
+            didMerge = true;
+        }
+
+        // Check for Basic → Titan merge (50 Basics = 1 Titan)
+        const basics = this.units.filter(u => u.tier === 0);
+        if (basics.length >= 50) {
+            const toRemove = basics.slice(0, 50);
+            toRemove.forEach(u => {
+                u.dispose();
+                const idx = this.units.indexOf(u);
+                if (idx > -1) this.units.splice(idx, 1);
+            });
+
+            // Create new Titan
+            const titan = new Unit(this.scene, this.centerPosition, 3, true);
+            this.units.push(titan);
+            console.log("TITAN MERGE! (50 Basics → 1 Titan)");
+            didMerge = true;
+        }
+
+        // If we merged, check again (might have enough for another merge)
+        if (didMerge) {
+            this.checkMerge();
         }
     }
 
     arrangeUnits() {
         if (this.units.length === 0) return;
 
-        // Titans go to back center, others swarm
-        const titans = this.units.filter(u => u.tier === 3);
-        const others = this.units.filter(u => u.tier !== 3);
+        // Separate by tier - large units (Titan, Tank) go to back
+        const bigUnits = this.units.filter(u => u.tier >= 3); // Titans and Tanks
+        const smallUnits = this.units.filter(u => u.tier < 3);
 
-        // Arrange Titans
-        titans.forEach((u, i) => {
-            u.targetLocalPos = { x: 0, z: 2 + i * 3 };
+        // Arrange big units at back center
+        bigUnits.forEach((u, i) => {
+            u.targetLocalPos = { x: (i % 3 - 1) * 2, z: 3 + Math.floor(i / 3) * 4 };
         });
 
-        // Arrange Others (Fermat's Spiral)
+        // Arrange small units in spiral formation
         const spacing = 0.8;
-        others.forEach((u, i) => {
+        smallUnits.forEach((u, i) => {
             const angle = i * 2.4;
             const r = 0.5 * spacing * Math.sqrt(i);
             u.targetLocalPos = {
@@ -171,12 +191,6 @@ export class SquadSystem {
 
         // 5. Update Units
         const time = Date.now() / 1000;
-
-        if (this.titan) {
-            this.titan.mesh.position.x = this.centerPosition.x;
-            this.titan.mesh.position.z = this.centerPosition.z;
-            this.titan.update(dt, time);
-        }
 
         this.units.forEach(u => {
             if (u.targetLocalPos) {

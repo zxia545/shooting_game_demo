@@ -23,13 +23,14 @@ export class Unit {
             { scale: 1.0, color: 0xFFFF00, hp: 1, dmg: 1 },      // 0: Basic (Yellow)
             { scale: 1.3, color: 0xFFA500, hp: 5, dmg: 5 },      // 1: Elite (Orange)
             { scale: 1.6, color: 0xFF0000, hp: 20, dmg: 20 },    // 2: Commander (Red)
-            { scale: 3.0, color: 0x00FFFF, hp: 100, dmg: 100 }   // 3: TITAN (Cyan)
+            { scale: 3.0, color: 0x00FFFF, hp: 100, dmg: 100 },  // 3: TITAN (Cyan)
+            { scale: 4.0, color: 0xFF00FF, hp: 500, dmg: 500 }   // 4: TANK (Magenta)
         ];
         // Enemy overrides
         if (!this.isPlayer) {
             return {
                 scale: 1.0 + tier * 0.5,
-                color: 0xef4444, // Reddish for enemies
+                color: tier === 0 ? 0xef4444 : tier === 1 ? 0xf97316 : 0x7c2d12, // Red, Orange, Dark Red
                 hp: 10 + tier * 10,
                 dmg: 1
             };
@@ -104,8 +105,8 @@ export class Unit {
             bg.position.y = 2.2;
             group.add(bg);
 
-            const hpGeo = new THREE.PlaneGeometry(1, 0.1);
-            const hpMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const hpGeo = new THREE.PlaneGeometry(1, 0.2);
+            const hpMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
             this.hpBar = new THREE.Mesh(hpGeo, hpMat);
             this.hpBar.position.y = 2.2;
             this.hpBar.position.z = 0.01;

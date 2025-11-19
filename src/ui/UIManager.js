@@ -3,6 +3,7 @@ export class UIManager {
         // Elements
         this.hud = document.getElementById('hud');
         this.mainMenu = document.getElementById('main-menu');
+        this.pauseMenu = document.getElementById('pause-menu');
         this.gameOver = document.getElementById('game-over');
 
         this.scoreDisplay = document.getElementById('score-display');
@@ -17,6 +18,12 @@ export class UIManager {
         this.btnUpgradeCount = document.getElementById('btn-upgrade-count');
         this.btnStart = document.getElementById('btn-start');
         this.btnRestart = document.getElementById('btn-restart');
+        this.btnPause = document.getElementById('btn-pause');
+        this.btnResume = document.getElementById('btn-resume');
+        this.btnQuit = document.getElementById('btn-quit');
+
+        this.levelBanner = document.getElementById('level-banner');
+        this.levelNumber = document.getElementById('level-number');
 
         this.lvlDmg = document.getElementById('lvl-dmg');
         this.priceDmg = document.getElementById('price-dmg');
@@ -35,12 +42,21 @@ export class UIManager {
     showMainMenu() {
         this.mainMenu.classList.remove('hidden');
         this.hud.classList.add('hidden');
+        this.pauseMenu.classList.add('hidden');
         this.gameOver.classList.add('hidden');
     }
 
     showGame() {
         this.mainMenu.classList.add('hidden');
         this.hud.classList.remove('hidden');
+        this.pauseMenu.classList.add('hidden');
+        this.gameOver.classList.add('hidden');
+    }
+
+    showPauseMenu() {
+        this.mainMenu.classList.add('hidden');
+        this.hud.classList.add('hidden');
+        this.pauseMenu.classList.remove('hidden');
         this.gameOver.classList.add('hidden');
     }
 
@@ -96,5 +112,14 @@ export class UIManager {
         this.leaderboardList.innerHTML = data.map((e, i) =>
             `<div class="flex justify-between"><span>${i + 1}. ${e.name || 'Player'}</span><span>${e.score}m</span></div>`
         ).join('');
+    }
+
+    showLevelUp(level) {
+        if (!this.levelBanner || !this.levelNumber) return;
+        this.levelNumber.innerText = level;
+        this.levelBanner.classList.remove('hidden');
+        setTimeout(() => {
+            this.levelBanner.classList.add('hidden');
+        }, 3000); // Show for 3 seconds
     }
 }
