@@ -1,5 +1,7 @@
 # 🧟 Zombie Crowd Shooter: Titan Evolution
 
+![CI](https://github.com/<USER>/<REPO>/actions/workflows/ci-cd.yml/badge.svg)
+
 A fast-paced 3D browser game where you command a growing squad through waves of zombies, merging units to create powerful Titans and evolving your strategy as you progress through increasingly challenging levels.
 
 ![Game Status](https://img.shields.io/badge/status-active-success.svg)
